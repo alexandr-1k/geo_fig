@@ -7,6 +7,7 @@
 #include "visualization.hpp"
 
 #include <algorithm>
+#include <format>
 #include <print>
 #include <ranges>
 
@@ -17,7 +18,6 @@ namespace views = std::ranges::views;
 
 void PrintAllIntersections(const Shape &shape, std::span<const Shape> others) {
     std::println("\n=== Intersections ===");
-
     /*
      * Используйте ranges чтобы оставить только фигуры,
      * поддерживающие возможность находить пересечения между собой
@@ -26,6 +26,12 @@ void PrintAllIntersections(const Shape &shape, std::span<const Shape> others) {
      *     - Пересечение найдено в точке A между фигурами B и C
      *     - Фигуры B и C не пересекаются
      */
+    rng::for_each(others, [&shape](const Shape &other) {
+        auto intersection = geometry::intersections::GetIntersectPoint(shape, other)
+                                .transform([](Point2D p) { return std::format("at point ({:.2f}, {:.2f})", p.x, p.y); })
+                                .value_or(std::string("no intersection"));
+        std::println("Intersection between shapes: {}", intersection);
+    });
 }
 
 void PrintDistancesFromPointToShapes(Point2D p, std::span<const Shape> shapes) {
@@ -36,17 +42,40 @@ void PrintDistancesFromPointToShapes(Point2D p, std::span<const Shape> shapes) {
      * Затем найдите расстояния от заданной точки до всех выбранных фигур.
      * Выведите результат в формате "Расстояние от точки P до фигуры S равно D"
      */
+
+    auto selected_shapes = shapes | views::take(5);
+
+    rng::for_each(selected_shapes, [p](const Shape &shape) {
+        double distance = geometry::queries::DistanceToPoint(shape, p);
+        std::println("Distance from point ({:.2f}, {:.2f}) to shape is {:.2f}", p.x, p.y, distance);
+    });
 }
 
 void PerformShapeAnalysis(std::span<const Shape> shapes) {
-    std::println("\n=== Shape Analysis ===");
-
     /*
      * Используйте ranges и созданные классы чтобы:
      *     - Найти все пересечения между фигурами используя метод Bounding Box
      *     - Найти самую высокую фигуру (чья высота наибольшая)expected
      *     - Вывести расстояние между любыми двумя фигурами, которые поддерживают данную функциональность
      */
+    std::println("\n=== Shape Analysis ===");
+
+    auto shape_pairs = views::cartesian_product(shapes, shapes);
+    rng::for_each(shape_pairs, [](const auto &pair) {
+        const auto &t = pair;
+        const auto &[shape1, shape2] = t;
+
+        if (&shape1 != &shape2 && geometry::queries::BoundingBoxesOverlap(shape1, shape2)) {
+            std::println("Bounding boxes of two shapes overlap.");
+            return;
+        }
+
+        auto distance_str = geometry::queries::DistanceBetweenShapes(shape1, shape2)
+                                .transform([&](double d) { return std::format("Distance: {:.2f}", d); })
+                                .value_or(std::string("Distance between two shapes is not supported."));
+
+        std::println("{}", distance_str);
+    });
 }
 
 void PerformExtraShapeAnalysis(std::span<const Shape> shapes) {
@@ -57,10 +86,14 @@ void PerformExtraShapeAnalysis(std::span<const Shape> shapes) {
      *     - Вывести 3 любые фигуры, которые находятся выше 50.0
      *     - Вывести фигуры с наименьшей и с наибольшей высотами
      */
+
+    auto selected_shapes =
+        shapes | std::views::filter([](const auto &val) { return queries::GetHeight(val) > 50.0; }) | views::take(3);
 }
 
 int main() {
-    std::vector<Shape> shapes = utils::ParseShapes("circle 0 0 1.5; line 1 2 3 4; polygon 0 0 2 5; triangle 0 0 1 0 0.5 1; polygon 0 0 1 2; badshape; circle 0 0 -1");
+    std::vector<Shape> shapes = utils::ParseShapes("circle 0 0 1.5; line 1 2 3 4; polygon 0 0 2 5; triangle 0 0 1 0 "
+                                                   "0.5 1; polygon 0 0 1 2; badshape; circle 0 0 -1");
     std::println("Parsed {} shapes", shapes.size());
 
     // Выведите индекс каждой фигуры и её высоту
@@ -91,7 +124,7 @@ int main() {
     /* ваш код здесь */
 
     //
-    // Находим список точек, для построения выпуклой оболочки - convex hull - алгоритмом Грэхема 
+    // Находим список точек, для построения выпуклой оболочки - convex hull - алгоритмом Грэхема
     // Создаём из них объект класса `Polygon` и добавляем его в список shapes
     // Рисуем все фигуры
     //
