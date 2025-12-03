@@ -10,10 +10,14 @@
 
 namespace geometry {
 
+enum class Errors {
+    TooFewArgs,
+};
+
 /*
-* Добавьте к методам класса Point2D и Lines2DDyn все необходимые аттрибуты и спецификаторы
-* Важно: Возвращаемый тип и принимаемые аргументы менять не нужно
-*/
+ * Добавьте к методам класса Point2D и Lines2DDyn все необходимые аттрибуты и спецификаторы
+ * Важно: Возвращаемый тип и принимаемые аргументы менять не нужно
+ */
 struct Point2D {
     double x, y;
 
@@ -21,18 +25,12 @@ struct Point2D {
     constexpr Point2D(double x, double y) : x(x), y(y) {}
 
     // Comparison
-    bool operator<(const Point2D &other) { return x < other.x && y < other.y; }
-    bool operator==(const Point2D &other) {
-        return x == other.x && y == other.y;
-    }
+    bool operator<(const Point2D &other) const { return x < other.x && y < other.y; }
+    bool operator==(const Point2D &other) const { return x == other.x && y == other.y; }
 
     // Binary math operators
-    Point2D operator+(const Point2D &other) const{
-        return {x + other.x, y + other.y};
-    }
-    Point2D operator-(const Point2D &other) const{
-        return {x - other.x, y - other.y};
-    }
+    Point2D operator+(const Point2D &other) const { return {x + other.x, y + other.y}; }
+    Point2D operator-(const Point2D &other) const { return {x - other.x, y - other.y}; }
     Point2D operator*(double value) { return {x * value, y * value}; }
     Point2D operator/(double value) { return {x / value, y / value}; }
 
@@ -86,7 +84,8 @@ struct BoundingBox {
 
     [[nodiscard]] constexpr double Width() const noexcept { return max_x - min_x; }
     [[nodiscard]] constexpr double Height() const noexcept { return max_y - min_y; }
-    [[nodiscard]] constexpr Point2D Center() const noexcept { return {(min_x + max_x) / 2, (min_y + max_y) / 2}; }};
+    [[nodiscard]] constexpr Point2D Center() const noexcept { return {(min_x + max_x) / 2, (min_y + max_y) / 2}; }
+};
 
 struct Line {
     Point2D start, end;
@@ -177,7 +176,7 @@ struct RegularPolygon {
     [[nodiscard]] constexpr double Height() const noexcept { return center_p.y + radius; }
     [[nodiscard]] constexpr Point2D Center() const noexcept { return center_p; }
 
-    [[nodiscard]] constexpr Lines2DDyn Lines() {
+    [[nodiscard]] constexpr Lines2DDyn Lines() const {
         auto verts = Vertices();
         Lines2DDyn lines;
         lines.Reserve(verts.size() + 1);
@@ -290,17 +289,27 @@ struct std::formatter<std::vector<geometry::Point2D>> {
 
     constexpr auto parse(std::format_parse_context &ctx) {
         auto it = ctx.begin();
-
-        /* ваш код здесь */
-
+        std::string_view sv(&*it, std::distance(it, ctx.end()));
+        if (sv.starts_with("new_line")) {
+            use_new_line = true;
+            it += std::size("new_line");
+        }
         return it;
     }
 
     template <typename FormatContext>
     auto format(const std::vector<geometry::Point2D> &v, FormatContext &ctx) {
-
-        /* ваш код здесь */
-        return ctx.out();
+        auto out = ctx.out();
+        out = std::format_to(out, "Points[{}]: [", v.size());
+        for (const auto &p : v) {
+            if (use_new_line) {
+                out = std::format_to(out, "\n  {}", p);
+            } else {
+                out = std::format_to(out, " {}", p);
+            }
+        }
+        out = std::format_to(out, " ]");
+        return out;
     }
 };
 
