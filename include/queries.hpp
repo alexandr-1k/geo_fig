@@ -277,4 +277,21 @@ inline std::optional<double> DistanceBetweenShapes(const Shape &shape1, const Sh
     ShapeToShapeDistanceVisitor visitor;
     return std::visit(visitor, shape1, shape2);
 }
+
+inline void AddPointsToVector(const std::ranges::range auto &points, std::vector<Point2D> &out_points) {
+    out_points.insert(out_points.end(), points.begin(), points.end());
+}
+
+inline std::vector<geometry::Point2D> GetShapeVertices(const Shape &shape) {
+    std::vector<geometry::Point2D> result;
+    std::visit(Multilambda{[&result](const Line &line) { AddPointsToVector(line.Vertices(), result); },
+                           [&result](const Triangle &triangle) { AddPointsToVector(triangle.Vertices(), result); },
+                           [&result](const Rectangle &rect) { AddPointsToVector(rect.Vertices(), result); },
+                           [&result](const RegularPolygon &polygon) { AddPointsToVector(polygon.Vertices(), result); },
+                           [&result](const Circle &circle) { AddPointsToVector(circle.Vertices(), result); },
+                           [&result](const Polygon &polygon) { AddPointsToVector(polygon.Vertices(), result); }},
+               shape);
+    return result;
+}
+
 }  // namespace geometry::queries

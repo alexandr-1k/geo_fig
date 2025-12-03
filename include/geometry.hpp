@@ -25,8 +25,8 @@ struct Point2D {
     constexpr Point2D(double x, double y) : x(x), y(y) {}
 
     // Comparison
-    bool operator<(const Point2D &other) { return x < other.x && y < other.y; }
-    bool operator==(const Point2D &other) { return x == other.x && y == other.y; }
+    bool operator<(const Point2D &other) const { return x < other.x && y < other.y; }
+    bool operator==(const Point2D &other) const { return x == other.x && y == other.y; }
 
     // Binary math operators
     Point2D operator+(const Point2D &other) const { return {x + other.x, y + other.y}; }
@@ -176,7 +176,7 @@ struct RegularPolygon {
     [[nodiscard]] constexpr double Height() const noexcept { return center_p.y + radius; }
     [[nodiscard]] constexpr Point2D Center() const noexcept { return center_p; }
 
-    [[nodiscard]] constexpr Lines2DDyn Lines() {
+    [[nodiscard]] constexpr Lines2DDyn Lines() const {
         auto verts = Vertices();
         Lines2DDyn lines;
         lines.Reserve(verts.size() + 1);

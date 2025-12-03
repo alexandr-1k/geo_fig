@@ -1,7 +1,6 @@
 #include "convex_hull.hpp"
 #include <algorithm>
 #include <expected>
-#include <stdexcept>
 
 namespace geometry::convex_hull {
 

@@ -25,7 +25,6 @@ private:
     std::vector<Point2D> s;
 };
 
-// Ваш код здесь
 std::expected<std::vector<Point2D>, geometry::Errors> GrahamScan(std::span<Point2D> points) noexcept;
 
 }  // namespace geometry::convex_hull

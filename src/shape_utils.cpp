@@ -227,17 +227,15 @@ std::vector<Shape> ParseShapes(std::string_view input) {
 std::vector<std::pair<Shape, Shape>> FindAllCollisions(std::span<const Shape> shapes) {
     std::vector<std::pair<Shape, Shape>> collisions;
 
-    auto shape_indices = std::views::iota(0u, shapes.size());
-    for (const auto &i : shape_indices) {
-        auto shape1 = shapes[i];
-        auto overlapping_shapes =
-            shape_indices | std::views::drop(i + 1) |
-            std::views::filter([&](size_t j) { return queries::BoundingBoxesOverlap(shape1, shapes[j]); }) |
-            std::views::transform([&](size_t j) { return std::make_pair(shape1, shapes[j]); });
+    auto shape_pairs = std::views::cartesian_product(shapes, shapes);
+    std::ranges::for_each(shape_pairs, [&](const auto &pair) {
+        const auto &t = pair;
+        const auto &[shape1, shape2] = t;
 
-        std::ranges::copy(overlapping_shapes, std::back_inserter(collisions));
-    }
-
+        if (&shape1 < &shape2 && geometry::queries::BoundingBoxesOverlap(shape1, shape2)) {
+            collisions.emplace_back(shape1, shape2);
+        }
+    });
     return collisions;
 }
 

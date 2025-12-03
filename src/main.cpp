@@ -89,6 +89,18 @@ void PerformExtraShapeAnalysis(std::span<const Shape> shapes) {
 
     auto selected_shapes =
         shapes | std::views::filter([](const auto &val) { return queries::GetHeight(val) > 50.0; }) | views::take(3);
+
+    auto [min_it, max_it] = rng::minmax_element(
+        shapes, [](const Shape &a, const Shape &b) { return queries::GetHeight(a) < queries::GetHeight(b); });
+
+    std::println("Shapes higher than 50.0:");
+    rng::for_each(selected_shapes,
+                  [](const Shape &shape) { std::println("Shape height: {:.2f}", queries::GetHeight(shape)); });
+
+    if (min_it != shapes.end() && max_it != shapes.end()) {
+        std::println("Shape with minimum height: {:.2f}", queries::GetHeight(*min_it));
+        std::println("Shape with maximum height: {:.2f}", queries::GetHeight(*max_it));
+    }
 }
 
 int main() {
@@ -97,6 +109,11 @@ int main() {
     std::println("Parsed {} shapes", shapes.size());
 
     // Выведите индекс каждой фигуры и её высоту
+
+    std::ranges::for_each(shapes | views::enumerate, [](const auto &indexed_shape) {
+        const auto &[index, shape] = indexed_shape;
+        std::println("Shape[{}] height: {:.2f}", index, queries::GetHeight(shape));
+    });
 
     //
     // Вызываем разработанные функции
@@ -120,8 +137,10 @@ int main() {
     // Формируем список из вершин всех фигур
     //
     std::vector<Point2D> points;
-
-    /* ваш код здесь */
+    std::ranges::for_each(shapes, [&points](const Shape &shape) {
+        auto vertices_vector = queries::GetShapeVertices(shape);
+        points.insert(points.end(), vertices_vector.begin(), vertices_vector.end());
+    });
 
     //
     // Находим список точек, для построения выпуклой оболочки - convex hull - алгоритмом Грэхема
@@ -129,7 +148,16 @@ int main() {
     // Рисуем все фигуры
     //
 
-    /* ваш код здесь */
+    auto result = convex_hull::GrahamScan(points);
+    if (result.has_value()) {
+        Polygon hull_polygon{*result};
+        shapes.push_back(hull_polygon);
+        geometry::visualization::Draw(shapes);
+    } else {
+        std::println("Graham Scan failed: {}", static_cast<int>(result.error()));
+    }
+
+    geometry::visualization::Draw(shapes);
 
     //
     // после изучения графика - нажмите Enter чтобы продолжить выполнение и построить 3ий график
@@ -145,6 +173,17 @@ int main() {
         // После успешного завершения алгоритма - выведите результат для проверки
         // используя geometry::visualization::Draw
         //
+
+        auto result = triangulation::DelaunayTriangulation(points);
+        if (result.has_value()) {
+            std::vector<triangulation::DelaunayTriangle> triangles_shapes;
+            for (const auto &triangle : *result) {
+                triangles_shapes.push_back(triangle);
+            }
+            geometry::visualization::Draw(triangles_shapes);
+        } else {
+            std::println("Delaunay Triangulation failed: {}", static_cast<int>(result.error()));
+        }
     }
     return 0;
 }

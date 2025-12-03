@@ -87,7 +87,6 @@ struct Edge {
     }
 };
 
-// Ваш код здесь
 inline std::expected<std::vector<DelaunayTriangle>, Errors>
 DelaunayTriangulation(std::span<const Point2D> points) noexcept {
     if (points.size() < 3) {
